@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análisis Interactivo de Costos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals -->
+    <!-- Application Structure Plan: Se ha diseñado una aplicación de una sola página con un flujo descendente lógico. Comienza con una introducción conceptual, seguida por la herramienta principal: un simulador interactivo con un gráfico y controles deslizantes. Esto permite al usuario "aprender haciendo". A continuación, se presentan los ejemplos del informe en un formato de tarjetas claras para reforzar el aprendizaje. Finalmente, se muestra un resumen matemático conciso. Esta estructura fue elegida para transformar un informe estático en una herramienta de aprendizaje activa, pasando de la interacción a la consolidación del conocimiento. -->
+    <!-- Visualization & Content Choices: El núcleo es un gráfico de líneas de Chart.js que visualiza la relación entre el volumen de producción y los costos. Report Info: Fórmulas de costos -> Goal: Mostrar cambio y comparación -> Viz/Presentation: Gráfico de líneas interactivo -> Interaction: Deslizadores para ajustar el volumen y valores de costos, actualizando el gráfico en tiempo real -> Justification: Hace tangibles las fórmulas abstractas. Los ejemplos se presentan en tarjetas para una organización clara. Report Info: Listas de ejemplos -> Goal: Organizar y reforzar -> Viz/Presentation: Tarjetas en dos columnas -> Interaction: Hover visual -> Justification: Mejora la legibilidad y estructura visual. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #FDFBF8;
+            color: #38332E;
+        }
+
+        .card {
+            background-color: #FFFFFF;
+            border: 1px solid #EAE6E1;
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #C8A582;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+
+        .slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: #C8A582;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+
+<body class="antialiased">
+
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
+
+        <header class="text-center mb-12">
+            <h1 class="text-4xl md:text-5xl font-bold text-stone-800 tracking-tight">Análisis Interactivo de Costos</h1>
+            <p class="mt-4 text-lg text-stone-600 max-w-3xl mx-auto">Una herramienta desarrollado por Thezero <b>FIIS Papá</b>, para visualizar la relación
+                matemática entre costos fijos, variables y el volumen de producción.</p>
+        </header>
+
+        <main>
+            <section id="simulator" class="mb-16 bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-stone-200">
+                <div class="text-center mb-8">
+                    <h2 class="text-3xl font-bold text-stone-800">Simulador de Costos</h2>
+                    <p class="mt-2 text-stone-600 max-w-2xl mx-auto">Ajusta los parámetros para observar cómo cada tipo
+                        de costo se comporta a medida que cambia la producción.</p>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-center">
+                    <div class="lg:col-span-2">
+                        <div class="chart-container relative w-full max-w-3xl mx-auto h-80 md:h-96">
+                            <canvas id="costChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="space-y-6">
+                        <div>
+                            <label for="productionVolume" class="block text-sm font-medium text-stone-700">Volumen de
+                                Producción (x)</label>
+                            <input id="productionVolume" type="range" min="0" max="1000" value="500"
+                                class="slider w-full h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer">
+                            <div class="text-center mt-2 font-medium text-stone-800"><span
+                                    id="productionVolumeValue">500</span> unidades</div>
+                        </div>
+                        <div>
+                            <label for="fixedCost" class="block text-sm font-medium text-stone-700">Costo Fijo Total
+                                (k)</label>
+                            <input id="fixedCost" type="number" value="5000"
+                                class="mt-1 block w-full rounded-md border-stone-300 shadow-sm focus:border-amber-500 focus:ring-amber-500 sm:text-sm p-2">
+                        </div>
+                        <div>
+                            <label for="variableCost" class="block text-sm font-medium text-stone-700">Costo Variable
+                                por Unidad (cᵥ)</label>
+                            <input id="variableCost" type="number" value="15"
+                                class="mt-1 block w-full rounded-md border-stone-300 shadow-sm focus:border-amber-500 focus:ring-amber-500 sm:text-sm p-2">
+                        </div>
+                        <div class="bg-stone-50 p-4 rounded-lg border border-stone-200 text-center">
+                            <h3 class="font-bold text-lg text-stone-800">Costo Total (Cₜ)</h3>
+                            <p id="totalCostValue" class="text-2xl font-bold text-amber-700 mt-1">S/ 12,500.00</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="examples" class="mb-16">
+                <div class="text-center mb-8">
+                    <h2 class="text-3xl font-bold text-stone-800">Ejemplos de Costos</h2>
+                    <p class="mt-2 text-stone-600">Casos prácticos para ilustrar cada categoría de costo.</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="space-y-4">
+                        <h3 class="text-2xl font-semibold text-center text-stone-700">Costos Fijos</h3>
+                        <div id="fixed-costs-container" class="space-y-4"></div>
+                    </div>
+                    <div class="space-y-4">
+                        <h3 class="text-2xl font-semibold text-center text-stone-700">Costos Variables</h3>
+                        <div id="variable-costs-container" class="space-y-4"></div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="formulas" class="bg-stone-800 text-white p-8 rounded-2xl">
+                <div class="text-center mb-6">
+                    <h2 class="text-3xl font-bold">Resumen Matemático</h2>
+                    <p class="mt-2 text-stone-300">La base funcional que describe el comportamiento de los costos.</p>
+                </div>
+                <div class="flex flex-wrap justify-center gap-8 text-center">
+                    <div class="p-4">
+                        <p class="text-lg font-mono">C<span class="text-sm align-sub">f</span>(x) = k</p>
+                        <p class="text-sm text-stone-400 mt-1">El costo fijo es una constante.</p>
+                    </div>
+                    <div class="p-4">
+                        <p class="text-lg font-mono">C<span class="text-sm align-sub">v</span>(x) = c<span
+                                class="text-sm align-sub">v</span> ⋅ x</p>
+                        <p class="text-sm text-stone-400 mt-1">El costo variable es proporcional a la producción.</p>
+                    </div>
+                    <div class="p-4">
+                        <p class="text-lg font-mono">C<span class="text-sm align-sub">T</span>(x) = k + (c<span
+                                class="text-sm align-sub">v</span> ⋅ x)</p>
+                        <p class="text-sm text-stone-400 mt-1">El costo total es la suma de ambos.</p>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const productionVolumeSlider = document.getElementById('productionVolume');
+            const fixedCostInput = document.getElementById('fixedCost');
+            const variableCostInput = document.getElementById('variableCost');
+            const productionVolumeValue = document.getElementById('productionVolumeValue');
+            const totalCostValue = document.getElementById('totalCostValue');
+
+            const fixedCostsData = [
+                { title: 'Alquiler del local', description: 'Pago mensual contractual que no varía con la producción.' },
+                { title: 'Salarios de administración', description: 'Sueldos de directivos y personal de soporte definidos por acuerdo laboral.' },
+                { title: 'Depreciación de equipos', description: 'Reducción del valor de activos estimada con métodos de valor constante.' },
+                { title: 'Primas de seguros', description: 'Pagos regulares de pólizas que garantizan la cobertura de la empresa.' },
+                { title: 'Impuestos a la propiedad', description: 'Tributos sobre bienes inmuebles basados en el valor de tasación.' }
+            ];
+
+            const variableCostsData = [
+                { title: 'Costo de materia prima', description: 'Directamente proporcional a la cantidad de unidades fabricadas.' },
+                { title: 'Comisiones por ventas', description: 'Remuneración a vendedores como un porcentaje de las ventas totales.' },
+                { title: 'Energía para la producción', description: 'Consumo de electricidad de la maquinaria, proporcional al tiempo de operación.' },
+                { title: 'Mano de obra directa', description: 'Salarios de operarios pagados por hora o por unidad producida.' },
+                { title: 'Empaquetado y envíos', description: 'El costo de embalaje y transporte escala con las unidades distribuidas.' }
+            ];
+
+            function populateCards(containerId, data) {
+                const container = document.getElementById(containerId);
+                data.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = 'card p-4 rounded-lg';
+                    card.innerHTML = `
+                        <h4 class="font-bold text-stone-800">${item.title}</h4>
+                        <p class="text-sm text-stone-600 mt-1">${item.description}</p>
+                    `;
+                    container.appendChild(card);
+                });
+            }
+
+            populateCards('fixed-costs-container', fixedCostsData);
+            populateCards('variable-costs-container', variableCostsData);
+
+            const ctx = document.getElementById('costChart').getContext('2d');
+            let costChart;
+
+            function formatCurrency(value) {
+                return new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' }).format(value);
+            }
+
+            function calculateCosts(volume, fixed, variablePerUnit) {
+                const labels = Array.from({ length: 101 }, (_, i) => Math.round(i * 10));
+                const fixedCosts = labels.map(() => fixed);
+                const variableCosts = labels.map(x => x * variablePerUnit);
+                const totalCosts = labels.map(x => fixed + (x * variablePerUnit));
+                return { labels, fixedCosts, variableCosts, totalCosts };
+            }
+
+            function updateChart() {
+                const volume = parseInt(productionVolumeSlider.value);
+                const fixed = parseFloat(fixedCostInput.value) || 0;
+                const variablePerUnit = parseFloat(variableCostInput.value) || 0;
+
+                productionVolumeValue.textContent = volume;
+                const currentTotalCost = fixed + (volume * variablePerUnit);
+                totalCostValue.textContent = formatCurrency(currentTotalCost);
+
+                const { labels, fixedCosts, variableCosts, totalCosts } = calculateCosts(volume, fixed, variablePerUnit);
+
+                if (costChart) {
+                    costChart.data.labels = labels;
+                    costChart.data.datasets[0].data = fixedCosts;
+                    costChart.data.datasets[1].data = variableCosts;
+                    costChart.data.datasets[2].data = totalCosts;
+                    costChart.update();
+                } else {
+                    costChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: labels,
+                            datasets: [
+                                {
+                                    label: 'Costo Fijo (Cf)',
+                                    data: fixedCosts,
+                                    borderColor: '#3b82f6',
+                                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                    borderWidth: 2,
+                                    fill: false,
+                                    pointRadius: 0,
+                                },
+                                {
+                                    label: 'Costo Variable (Cv)',
+                                    data: variableCosts,
+                                    borderColor: '#16a34a',
+                                    backgroundColor: 'rgba(22, 163, 74, 0.1)',
+                                    borderWidth: 2,
+                                    fill: false,
+                                    pointRadius: 0,
+                                },
+                                {
+                                    label: 'Costo Total (CT)',
+                                    data: totalCosts,
+                                    borderColor: '#ca8a04',
+                                    backgroundColor: 'rgba(202, 138, 4, 0.1)',
+                                    borderWidth: 3,
+                                    fill: false,
+                                    pointRadius: 0,
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                x: {
+                                    title: {
+                                        display: true,
+                                        text: 'Volumen de Producción (unidades)'
+                                    }
+                                },
+                                y: {
+                                    title: {
+                                        display: true,
+                                        text: 'Costo (S/)'
+                                    },
+                                    beginAtZero: true,
+                                    ticks: {
+                                        callback: function (value) {
+                                            return formatCurrency(value);
+                                        }
+                                    }
+                                }
+                            },
+                            plugins: {
+                                tooltip: {
+                                    mode: 'index',
+                                    intersect: false,
+                                    callbacks: {
+                                        label: function (context) {
+                                            let label = context.dataset.label || '';
+                                            if (label) {
+                                                label += ': ';
+                                            }
+                                            if (context.parsed.y !== null) {
+                                                label += formatCurrency(context.parsed.y);
+                                            }
+                                            return label;
+                                        }
+                                    }
+                                },
+                                legend: {
+                                    position: 'bottom',
+                                }
+                            },
+                            interaction: {
+                                mode: 'index',
+                                intersect: false,
+                            },
+                        }
+                    });
+                }
+            }
+
+            productionVolumeSlider.addEventListener('input', updateChart);
+            fixedCostInput.addEventListener('input', updateChart);
+            variableCostInput.addEventListener('input', updateChart);
+
+            updateChart();
+        });
+    </script>
+
+</body>
+
+</html>
